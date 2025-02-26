@@ -1,0 +1,9 @@
+/node_modules
+
+functions
+
+package-lock.json
+yarn.lock
+vercel.json
+
+.vscode
