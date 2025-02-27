@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from 'mongoose'
 
 const reviewSchema = new mongoose.Schema(
   {
@@ -8,8 +8,8 @@ const reviewSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
-);
+  },
+)
 
 const spotSchema = new mongoose.Schema(
   {
@@ -25,7 +25,7 @@ const spotSchema = new mongoose.Schema(
     numReviews: { type: Number, required: true },
     parking: { type: String, required: true },
     furnished: { type: String, required: true },
-    address:{ type: String, required: true, unique: true },
+    address: { type: String, required: true, unique: true },
     offer: { type: String, required: false },
     regularPrice: { type: Number, required: true },
     discountedPrice: { type: Number, required: true },
@@ -34,8 +34,8 @@ const spotSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
-);
+  },
+)
 
-const Spot = mongoose.model('Spot', spotSchema);
-export default Spot;
+const Spot = mongoose.model('Spot', spotSchema)
+export default Spot
