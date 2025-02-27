@@ -1,2 +1,2 @@
-# eyesgreen-shop-backend
+# imosmart - backend
 # imo
