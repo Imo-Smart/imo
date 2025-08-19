@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import express from 'express'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
@@ -5,7 +6,6 @@ import cors from 'cors'
 import path from 'path'
 import http from 'http'
 import { Server } from 'socket.io'
-
 import userRouter from './routes/userRoutes.js'
 import propertyRoutes from './routes/propertyRoutes.js'
 
@@ -31,14 +31,11 @@ const users = []
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 
-app.get('/api/keys/paypal', (req, res) => {
-  res.send(process.env.PAYPAL_CLIENT_ID || 'sb')
-})
 app.get('/api/keys/google', (req, res) => {
   res.send({ key: process.env.GOOGLE_API_KEY || '' })
 })
 
-app.use('/api/users', userRouter)
+app.use('/api/users', userRouter) // ✅ monta as rotas
 app.use('/api/properties', propertyRoutes)
 
 const __dirname = path.resolve()
@@ -47,7 +44,7 @@ app.get('*', (req, res) =>
   res.sendFile(path.join(__dirname, '/frontend/build/index.html')),
 )
 
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   res.status(500).send({ message: err.message })
 })
 
