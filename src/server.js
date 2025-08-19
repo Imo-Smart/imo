@@ -7,13 +7,12 @@ import http from 'http'
 import { Server } from 'socket.io'
 
 import userRouter from './routes/userRoutes.js'
-import uploadRouter from './routes/uploadRoutes.js'
-import spotRouter from './routes/spotRoutes.js'
+import propertyRoutes from './routes/propertyRoutes.js'
 
 dotenv.config()
 
 mongoose
-  .connect(process.env.MONGODB_URI_ATLAS)
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('`💻 server running')
   })
@@ -39,9 +38,8 @@ app.get('/api/keys/google', (req, res) => {
   res.send({ key: process.env.GOOGLE_API_KEY || '' })
 })
 
-app.use('/api/upload', uploadRouter)
 app.use('/api/users', userRouter)
-app.use('/api/spots', spotRouter)
+app.use('/api/properties', propertyRoutes)
 
 const __dirname = path.resolve()
 app.use(express.static(path.join(__dirname, '/frontend/build')))
