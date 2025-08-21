@@ -14,7 +14,7 @@ dotenv.config()
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => {
-    console.log('`💻 server running')
+    console.log('📊 Connected to db')
   })
   .catch((err) => {
     console.log(err.message)
@@ -23,13 +23,13 @@ mongoose
 const app = express()
 app.use(cors())
 
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
+
 const httpServer = http.Server(app)
 
 const io = new Server(httpServer, { cors: { origin: '*' } })
 const users = []
-
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
 
 app.get('/api/keys/google', (req, res) => {
   res.send({ key: process.env.GOOGLE_API_KEY || '' })
@@ -124,5 +124,5 @@ io.on('connection', (socket) => {
 
 const port = process.env.PORT || 3333
 httpServer.listen(port, () => {
-  console.log(`serve at http://localhost:${port}`)
+  console.log(`💻 server running`)
 })

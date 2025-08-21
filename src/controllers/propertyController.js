@@ -5,7 +5,9 @@ import Property from '../models/propertyModel.js'
 // Criar imóvel com upload de imagens
 export const createProperty = async (req, res) => {
   try {
-    const images = req.files.map((file) => file.path) // pegar URLs do Cloudinary
+    console.log('FILES:', req.files)
+
+    const images = req.files.map((file) => file.path) // agora vai ter path do Cloudinary
 
     const property = new Property({
       ...req.body,

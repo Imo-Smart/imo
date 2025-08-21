@@ -169,8 +169,27 @@ export const forgotPassword = async (req, res) => {
   try {
     await sendEmail({
       to: user.email,
-      subject: 'Recuperação de senha',
-      text: `Você solicitou a recuperação de senha. Clique aqui: ${resetUrl}`,
+      subject: '🔐 Recuperação de Senha - ImoSmart',
+      text: `Você solicitou a recuperação de senha. Para redefinir, acesse o link: ${resetUrl}`,
+      html: `
+    <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+      <h2 style="color: #4CAF50;">Recuperação de Senha</h2>
+      <p>Olá ${user.name},</p>
+      <p>Recebemos uma solicitação para redefinir sua senha no <strong>ImoSmart</strong>.</p>
+      <p>Para continuar, clique no botão abaixo:</p>
+      <a href="${resetUrl}"
+         style="display: inline-block; margin: 20px 0; padding: 12px 20px; background-color: #4CAF50; color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">
+         🔑 Redefinir Senha
+      </a>
+      <p>Ou, se preferir, copie e cole o link abaixo no seu navegador:</p>
+      <p style="word-break: break-word; color: #555;">${resetUrl}</p>
+      <p style="margin-top: 30px; font-size: 14px; color: #888;">
+        Se você não solicitou a recuperação de senha, ignore este e-mail.
+        Sua conta permanecerá segura.
+      </p>
+      <p style="margin-top: 20px;">Atenciosamente,<br/><strong>Equipe ImoSmart 🏡</strong></p>
+    </div>
+  `,
     })
   } catch (err) {
     console.log('Erro ao enviar email de recuperação:', err.message)
