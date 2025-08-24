@@ -1,111 +1,81 @@
-// controllers/propertyController.js
-import Property from '../models/propertyModel.js'
+import Property from '../models/Property.js'
 
-// Criar novo imóvel
-// Criar imóvel com upload de imagens
+// Criar imóvel (apenas admin)
 export const createProperty = async (req, res) => {
   try {
-    console.log('FILES:', req.files)
+    const { ...data } = req.body
 
-    const images = req.files.map((file) => file.path) // agora vai ter path do Cloudinary
+    // Pegar URLs das imagens enviadas
+    if (req.files) {
+      data.images = req.files.map((file) => file.path) // Cloudinary retorna a URL em file.path
+    }
 
-    const property = new Property({
-      ...req.body,
-      images,
-    })
-
-    const savedProperty = await property.save()
-    res.status(201).json(savedProperty)
+    const property = new Property(data)
+    const createdProperty = await property.save()
+    res.status(201).json(createdProperty)
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(500).json({ message: 'Erro ao criar imóvel', error })
   }
 }
 
-// Listar todos os imóveis
+// Listar todos imóveis
 export const getProperties = async (req, res) => {
   try {
-    const properties = await Property.find({})
+    const properties = await Property.find()
     res.json(properties)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: 'Erro ao buscar imóveis', error })
   }
 }
 
-// Buscar imóvel por ID
+// Listar imóvel por ID
 export const getPropertyById = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
-    if (property) {
-      res.json(property)
-    } else {
-      res.status(404).json({ message: 'Imóvel não encontrado' })
-    }
+    if (!property)
+      return res.status(404).json({ message: 'Imóvel não encontrado' })
+    res.json(property)
   } catch (error) {
-    res.status(500).json({ message: error.message })
+    res.status(500).json({ message: 'Erro ao buscar imóvel', error })
   }
 }
 
-// Atualizar imóvel e imagens
+// Atualizar imóvel (apenas admin)
 export const updateProperty = async (req, res) => {
   try {
     const property = await Property.findById(req.params.id)
     if (!property)
       return res.status(404).json({ message: 'Imóvel não encontrado' })
 
-    if (req.files && req.files.length > 0) {
-      const images = req.files.map((file) => file.path)
-      property.images = images
-    }
-
+    // Atualiza campos
     Object.assign(property, req.body)
+
+    // Atualiza imagens se enviadas
+    if (req.files) {
+      property.images = req.files.map((file) => file.path)
+    }
 
     const updatedProperty = await property.save()
     res.json(updatedProperty)
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    res.status(500).json({ message: 'Erro ao atualizar imóvel', error })
   }
 }
 
-// Deletar imóvel
+// Deletar imóvel (apenas admin)
 export const deleteProperty = async (req, res) => {
   try {
     const property = await Property.findByIdAndDelete(req.params.id)
-    if (property) {
-      res.json({ message: 'Imóvel removido com sucesso' })
-    } else {
-      res.status(404).json({ message: 'Imóvel não encontrado' })
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message })
-  }
-}
 
-// Adicionar review a um imóvel
-export const addReview = async (req, res) => {
-  try {
-    const property = await Property.findById(req.params.id)
-    if (!property)
+    if (!property) {
       return res.status(404).json({ message: 'Imóvel não encontrado' })
-
-    const { name, comment, rating } = req.body
-
-    // Criar review
-    const review = {
-      name,
-      comment,
-      rating: Number(rating),
     }
 
-    property.reviews.push(review)
-    property.numReviews = property.reviews.length
-    property.rating =
-      property.reviews.reduce((acc, item) => item.rating + acc, 0) /
-      property.reviews.length
-
-    await property.save()
-
-    res.status(201).json({ message: 'Review adicionada com sucesso', review })
+    res.json({ message: 'Imóvel deletado com sucesso!' })
   } catch (error) {
-    res.status(400).json({ message: error.message })
+    console.error('❌ Erro ao deletar:', error)
+    res
+      .status(500)
+      .json({ message: 'Erro ao deletar imóvel', error: error.message })
   }
 }

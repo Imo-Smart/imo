@@ -1,2 +1,0 @@
-# imosmart - backend
-# imo

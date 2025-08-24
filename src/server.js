@@ -1,128 +1,34 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import express from 'express'
 import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import cors from 'cors'
-import path from 'path'
-import http from 'http'
-import { Server } from 'socket.io'
-import userRouter from './routes/userRoutes.js'
+
+import userRoutes from './routes/userRoutes.js'
 import propertyRoutes from './routes/propertyRoutes.js'
+import './socket/chatSocket.js'
 
 dotenv.config()
 
-mongoose
-  .connect(process.env.MONGODB_URI)
-  .then(() => {
-    console.log('📊 Connected to db')
-  })
-  .catch((err) => {
-    console.log(err.message)
-  })
+console.log('Cloudinary API Key:', process.env.CLOUDINARY_API_KEY)
 
 const app = express()
+
 app.use(cors())
-
 app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
 
-const httpServer = http.Server(app)
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log('📊 Connected to db'))
+  .catch((err) => console.error('Error connected db:', err.message))
 
-const io = new Server(httpServer, { cors: { origin: '*' } })
-const users = []
-
-app.get('/api/keys/google', (req, res) => {
-  res.send({ key: process.env.GOOGLE_API_KEY || '' })
+app.get('/test-server', (req, res) => {
+  res.send('Imosmart server running! ✅')
 })
 
-app.use('/api/users', userRouter) // ✅ monta as rotas
+app.use('/api/users', userRoutes)
 app.use('/api/properties', propertyRoutes)
 
-const __dirname = path.resolve()
-app.use(express.static(path.join(__dirname, '/frontend/build')))
-app.get('*', (req, res) =>
-  res.sendFile(path.join(__dirname, '/frontend/build/index.html')),
-)
-
-app.use((err, req, res, next) => {
-  res.status(500).send({ message: err.message })
-})
-
-io.on('connection', (socket) => {
-  socket.on('onLogin', (user) => {
-    const updatedUser = {
-      ...user,
-      online: true,
-      socketId: socket.id,
-      messages: [],
-    }
-
-    const existUser = users.find((x) => x.name === updatedUser.name)
-    if (existUser) {
-      existUser.socketId = socket.id
-      existUser.online = true
-    } else {
-      users.push(updatedUser)
-    }
-    const admin = users.find((x) => x.name === 'Admin' && x.online)
-    if (admin) {
-      io.to(admin.socketId).emit('updateUser', updatedUser)
-    }
-    if (updatedUser.name === 'Admin') {
-      io.to(updatedUser.socketId).emit('listUsers', users)
-    }
-  })
-
-  socket.on('disconnect', () => {
-    const user = users.find((x) => x.socketId === socket.id)
-    if (user) {
-      user.online = false
-      const admin = users.find((x) => x.name === 'Admin' && x.online)
-      if (admin) {
-        io.to(admin.socketId).emit('updateUser', user)
-      }
-    }
-  })
-  socket.on('onUserSelected', (user) => {
-    const admin = users.find((x) => x.name === 'Admin' && x.online)
-    if (admin) {
-      const existUser = users.find((x) => x.name === user.name)
-      io.to(admin.socketId).emit('selectUser', existUser)
-    }
-  })
-  socket.on('onMessage', (message) => {
-    if (message.from === 'Admin') {
-      const user = users.find((x) => x.name === message.to && x.online)
-      if (user) {
-        io.to(user.socketId).emit('message', message)
-        user.messages.push(message)
-      } else {
-        io.to(socket.id).emit('message', {
-          from: 'System',
-          to: 'Admin',
-          body: 'Usuário offline',
-        })
-      }
-    } else {
-      const admin = users.find((x) => x.name === 'Admin' && x.online)
-      if (admin) {
-        io.to(admin.socketId).emit('message', message)
-        const user = users.find((x) => x.name === message.from && x.online)
-        if (user) {
-          user.messages.push(message)
-        }
-      } else {
-        io.to(socket.id).emit('message', {
-          from: 'System',
-          to: message.from,
-          body: 'Responderemos, em breve',
-        })
-      }
-    }
-  })
-})
-
-const port = process.env.PORT || 3333
-httpServer.listen(port, () => {
-  console.log(`💻 server running`)
+const PORT = process.env.PORT || 3333
+app.listen(PORT, () => {
+  console.log(`💻 Server running ${PORT}`)
 })

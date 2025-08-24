@@ -1,35 +1,57 @@
-// routes/propertyRoutes.js
 import express from 'express'
-import upload from '../middleware/upload.js'
+import Property from '../models/Property.js'
 import {
   createProperty,
   getProperties,
   getPropertyById,
   updateProperty,
   deleteProperty,
-  addReview,
 } from '../controllers/propertyController.js'
-
-import { isAuth, isAdmin } from '../utils/utils.js'
+import reviewRoutes from './reviewRoutes.js'
+import { upload } from '../utils/upload.js'
+import { protect, admin } from '../middleware/authMiddleware.js'
 
 const router = express.Router()
 
-// CRUD
-/* router.post('/test-upload', upload.array('images', 5), (req, res) => {
-  console.log('BODY:', req.body)
-  console.log('FILES:', req.files)
-  res.json({ body: req.body, files: req.files })
-}) */
+// Rotas públicas
+router.get('/', getProperties)
+router.get('/:id', getPropertyById)
+
+// Rotas protegidas (apenas admin)
+router.post('/', protect, admin, createProperty)
+router.put('/:id', protect, admin, updateProperty)
+router.delete('/:id', protect, admin, deleteProperty)
+
+// Criação de imóvel com imagens
 router.post(
-  '/add-properties',
-  upload.array('images', 5),
-  isAdmin,
+  '/create-property',
+  protect,
+  admin,
+  upload.array('images', 10),
   createProperty,
-) // Criar
-router.get('/', isAdmin, getProperties) // Listar todos
-router.get('/:id', isAuth, isAdmin, getPropertyById) // Buscar por ID
-router.put('/:id', upload.array('images', 5), isAdmin, updateProperty) // Atualizar
-router.delete('/:id', isAdmin, deleteProperty) // Deletar
-router.post('/:id/reviews', isAuth, isAdmin, addReview)
+)
+
+// Rotas de review
+router.use('/:id/reviews', protect, reviewRoutes)
+
+// Atualização de imóvel com imagens
+router.put(
+  '/update/:id',
+  protect,
+  admin,
+  upload.array('images', 10),
+  updateProperty,
+)
+
+// Listar propriedades por categoria
+router.get('/category/:type', async (req, res) => {
+  try {
+    const { type } = req.params
+    const properties = await Property.find({ category: type })
+    res.json(properties)
+  } catch (error) {
+    res.status(500).json({ message: 'Erro ao buscar propriedades', error })
+  }
+})
 
 export default router
