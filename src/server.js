@@ -15,11 +15,22 @@ dotenv.config()
 // App Express
 const app = express()
 
+// Lista de origens permitidas (pode vir do .env)
+const allowedOrigins = process.env.CORS_ORIGINS
+  ? process.env.CORS_ORIGINS.split(',')
+  : ['http://localhost:5173', 'https://imosmart.netlify.app']
+
 // Middlewares globais
 app.use(express.json())
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true)
+      } else {
+        callback(new Error('Not allowed by CORS'))
+      }
+    },
     credentials: true,
   })
 )
@@ -28,7 +39,7 @@ app.use(
 const httpServer = http.createServer(app)
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     credentials: true,
   },
 })
@@ -67,4 +78,5 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3333
 httpServer.listen(PORT, () => {
   console.log(`💻 Server running on port ${PORT}`)
+  console.log('🌍 Allowed origins:', allowedOrigins)
 })
