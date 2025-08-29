@@ -18,7 +18,7 @@ export const welcomeTemplate = (userName) => `
 <body>
   <div class="container">
     <h1>Bem-vindo(a), ${userName}!</h1>
-    <p>Estamos muito felizes em ter você no nosso App. Agora você já pode fazer login e começar a aproveitar todos os recursos disponíveis.</p>
+    <p>Estamos muito felizes em ter você no nossa plataforma de imóveis. Agora você já pode fazer login e começar a aproveitar todos os recursos disponíveis.</p>
     <a href="${process.env.FRONTEND_URL}/sign-in" class="button">Fazer Login</a>
     <div class="footer">
       <p>Se você não se cadastrou, ignore este e-mail.</p>
