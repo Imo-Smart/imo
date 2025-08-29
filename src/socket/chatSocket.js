@@ -11,42 +11,40 @@ const app = express()
 const httpServer = http.Server(app)
 const io = new Server(httpServer, { cors: { origin: '*' } })
 
-// Array em memória para controle de usuários online
-const users = []
+// Array em memória para usuários online
+let users = []
 
 io.on('connection', (socket) => {
+  console.log(`🔌 Nova conexão: ${socket.id}`)
+
   // 📌 Login do usuário
   socket.on('onLogin', async (user) => {
+    console.log(`✅ Usuário logado: ${user.name}`)
+
+    // Remove duplicado caso já exista
+    users = users.filter((u) => u.name !== user.name)
+
     const updatedUser = {
       ...user,
       online: true,
       socketId: socket.id,
       messages: [],
     }
+    users.push(updatedUser)
 
-    const existUser = users.find((x) => x.name === updatedUser.name)
-    if (existUser) {
-      existUser.socketId = socket.id
-      existUser.online = true
-    } else {
-      users.push(updatedUser)
-    }
-
-    // Admin recebe atualização do usuário
+    // Notifica admin
     const admin = users.find((x) => x.name === 'Admin' && x.online)
     if (admin && updatedUser.name !== 'Admin') {
       io.to(admin.socketId).emit('updateUser', updatedUser)
     }
 
-    // Carrega histórico de conversa do usuário para Admin
+    // Carrega histórico
     if (updatedUser.name === 'Admin') {
       const allConversations = await Conversation.find()
       io.to(updatedUser.socketId).emit('listUsers', users)
       io.to(updatedUser.socketId).emit('loadHistoryAll', allConversations)
     } else {
-      const conversation = await Conversation.findOne({
-        userName: updatedUser.name,
-      })
+      const conversation = await Conversation.findOne({ userName: updatedUser.name })
       if (conversation && admin) {
         io.to(admin.socketId).emit('loadHistory', conversation.messages)
       }
@@ -57,6 +55,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     const user = users.find((x) => x.socketId === socket.id)
     if (user) {
+      console.log(`❌ Usuário desconectado: ${user.name}`)
       user.online = false
       const admin = users.find((x) => x.name === 'Admin' && x.online)
       if (admin) {
@@ -65,7 +64,7 @@ io.on('connection', (socket) => {
     }
   })
 
-  // 📌 Usuário selecionado pelo admin
+  // 📌 Selecionar usuário
   socket.on('onUserSelected', (user) => {
     const admin = users.find((x) => x.name === 'Admin' && x.online)
     if (admin) {
@@ -77,36 +76,24 @@ io.on('connection', (socket) => {
   // 📌 Enviar mensagem
   socket.on('onMessage', async (message) => {
     try {
+      console.log(`💬 Mensagem recebida de ${message.from} para ${message.to}`)
       if (message.from === 'Admin') {
-        // Mensagem do Admin para usuário
         const user = users.find((x) => x.name === message.to && x.online)
         if (user) io.to(user.socketId).emit('message', message)
 
-        // Salvar no MongoDB
-        let conversation = await Conversation.findOne({
-          userName: message.to,
-        })
+        let conversation = await Conversation.findOne({ userName: message.to })
         if (!conversation) {
-          conversation = new Conversation({
-            userName: message.to,
-            messages: [],
-          })
+          conversation = new Conversation({ userName: message.to, messages: [] })
         }
         conversation.messages.push(message)
         await conversation.save()
       } else {
-        // Mensagem do usuário para Admin
         const admin = users.find((x) => x.name === 'Admin' && x.online)
         if (admin) io.to(admin.socketId).emit('message', message)
 
-        let conversation = await Conversation.findOne({
-          userName: message.from,
-        })
+        let conversation = await Conversation.findOne({ userName: message.from })
         if (!conversation) {
-          conversation = new Conversation({
-            userName: message.from,
-            messages: [],
-          })
+          conversation = new Conversation({ userName: message.from, messages: [] })
         }
         conversation.messages.push(message)
         await conversation.save()
@@ -125,7 +112,7 @@ io.on('connection', (socket) => {
   })
 })
 
-const port = process.env.PORT || 3333
+const port = process.env.CHAT_PORT || 5001
 httpServer.listen(port, () => {
-  console.log(`💻 Server running on port ${port}`)
+  console.log(`💬 Chat server running on port ${port}`)
 })
