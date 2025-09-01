@@ -6,36 +6,48 @@ import { createServer } from 'http'
 import { Server } from 'socket.io'
 import Conversation from './models/Conversation.js'
 
+// Rotas
+import userRoutes from './routes/userRoutes.js'
+import propertyRoutes from './routes/propertyRoutes.js'
+
 dotenv.config()
 
 const app = express()
 app.use(express.json())
 app.use(cors())
 
-// Conexão com MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+// ✅ Conexão com MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB conectado'))
   .catch(err => console.error('❌ Erro ao conectar MongoDB:', err))
 
-// Criar servidor HTTP
+
+// Rotas de teste
+app.get('/test-server', (req, res) => {
+  res.send('🚀 Imosmart server running! ✅')
+})
+
+// Rotas da aplicação
+app.use('/api/users', userRoutes)
+app.use('/api/properties', propertyRoutes)
+
+// ✅ Criar servidor HTTP
 const httpServer = createServer(app)
 
-// Configurar Socket.io
+// ✅ Configuração Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // ⚠️ Ajuste depois para a URL do seu frontend
+    origin: '*', // ⚠️ Trocar pela URL do frontend em produção
     methods: ['GET', 'POST'],
   },
 })
 
-// Eventos de WebSocket
+// ✅ Eventos WebSocket
 io.on('connection', (socket) => {
   console.log('🟢 Novo cliente conectado:', socket.id)
 
-  // Entrar em uma conversa existente
+  // Usuário entra em uma conversa
   socket.on('joinConversation', async ({ conversationId }) => {
     socket.join(conversationId)
     console.log(`📌 Cliente ${socket.id} entrou na conversa ${conversationId}`)
@@ -44,7 +56,6 @@ io.on('connection', (socket) => {
   // Enviar mensagem
   socket.on('sendMessage', async ({ conversationId, from, to, body }) => {
     try {
-      // Buscar conversa no banco
       const conversation = await Conversation.findById(conversationId)
 
       if (!conversation) {
@@ -56,7 +67,7 @@ io.on('connection', (socket) => {
       conversation.messages.push(newMessage)
       await conversation.save()
 
-      // Enviar a mensagem em tempo real para todos na sala
+      // Broadcast da mensagem em tempo real
       io.to(conversationId).emit('newMessage', {
         conversationId,
         ...newMessage,
@@ -72,7 +83,37 @@ io.on('connection', (socket) => {
   })
 })
 
-// Porta do servidor
+// ✅ Rotas REST para conversas
+app.get('/api/conversations/:id', async (req, res) => {
+  try {
+    const conversation = await Conversation.findById(req.params.id)
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversa não encontrada' })
+    }
+    res.json(conversation)
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao buscar conversa', error: err.message })
+  }
+})
+
+app.post('/api/conversations', async (req, res) => {
+  try {
+    const { userName } = req.body
+    const newConversation = new Conversation({ userName, messages: [] })
+    await newConversation.save()
+    res.status(201).json(newConversation)
+  } catch (err) {
+    res.status(500).json({ message: 'Erro ao criar conversa', error: err.message })
+  }
+})
+
+// ✅ Middleware de erro global
+app.use((err, req, res, next) => {
+  console.error('❌ Erro interno:', err.message)
+  res.status(500).json({ message: 'Erro interno no servidor' })
+})
+
+// ✅ Porta do servidor
 const PORT = process.env.PORT || 5001
 httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
