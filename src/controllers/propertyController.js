@@ -1,4 +1,5 @@
 import Property from '../models/Property.js'
+import { getCoordinatesFromAddress } from '../utils/geocode.js'
 
 // Criar imóvel (apenas admin)
 export const createProperty = async (req, res) => {
@@ -8,6 +9,12 @@ export const createProperty = async (req, res) => {
     // Pegar URLs das imagens enviadas
     if (req.files) {
       data.images = req.files.map((file) => file.path) // Cloudinary retorna a URL em file.path
+    }
+
+    // ➕ Buscar coordenadas pelo endereço
+    const coords = await getCoordinatesFromAddress(data.address)
+    if (coords) {
+      data.location = coords
     }
 
     const property = new Property(data)
@@ -79,3 +86,24 @@ export const deleteProperty = async (req, res) => {
       .json({ message: 'Erro ao deletar imóvel', error: error.message })
   }
 }
+
+export const getRandomImages = async (req, res) => {
+  try {
+    // Retorna 5 imagens aleatórias (ajuste o número se quiser mais)
+    const properties = await Property.aggregate([
+      { $sample: { size: 5 } }, // pega aleatoriamente
+      { $project: { images: 1, name: 1 } }, // pega apenas images e nome
+    ]);
+
+    // Pega a primeira imagem de cada imóvel
+    const images = properties.map((p) => ({
+      title: p.name,
+      img: p.images[0],
+      id: p._id
+    }));
+
+    res.json(images);
+  } catch (error) {
+    res.status(500).json({ message: "Erro ao buscar imagens", error });
+  }
+};

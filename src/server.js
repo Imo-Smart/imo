@@ -1,26 +1,26 @@
-import express from 'express'
-import mongoose from 'mongoose'
-import dotenv from 'dotenv'
-import cors from 'cors'
-import { createServer } from 'http'
-import { Server } from 'socket.io'
-import Conversation from './models/Conversation.js'
+// src/server.js
+import express from 'express';
+import mongoose from 'mongoose';
+import dotenv from 'dotenv';
+import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 
 // Rotas
 import userRoutes from './routes/userRoutes.js'
 import propertyRoutes from './routes/propertyRoutes.js'
+import Conversation from './models/Conversation.js';
 
-dotenv.config()
+dotenv.config();
 
-const app = express()
-app.use(express.json())
-app.use(cors())
+const app = express();
+app.use(express.json());
+app.use(cors());
 
-// ✅ Conexão com MongoDB
 mongoose
   .connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB conectado'))
-  .catch(err => console.error('❌ Erro ao conectar MongoDB:', err))
+  .catch((err) => console.error('❌ Erro ao conectar MongoDB:', err));
 
 
 // Rotas de teste
@@ -32,89 +32,102 @@ app.get('/test-server', (req, res) => {
 app.use('/api/users', userRoutes)
 app.use('/api/properties', propertyRoutes)
 
-// ✅ Criar servidor HTTP
-const httpServer = createServer(app)
+const httpServer = createServer(app);
 
-// ✅ Configuração Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // ⚠️ Trocar pela URL do frontend em produção
+    origin: 'https://imosmart.netlify.app',
     methods: ['GET', 'POST'],
   },
-})
+});
 
-// ✅ Eventos WebSocket
 io.on('connection', (socket) => {
-  console.log('🟢 Novo cliente conectado:', socket.id)
+  console.log('🟢 Novo cliente conectado');
 
-  // Usuário entra em uma conversa
-  socket.on('joinConversation', async ({ conversationId }) => {
-    socket.join(conversationId)
-    console.log(`📌 Cliente ${socket.id} entrou na conversa ${conversationId}`)
-  })
+  // Admin entra
+  socket.on('joinAdmin', async () => {
+    socket.join('admins');
+    console.log('👨‍💻 Admin conectado e ouvindo todas as conversas');
+
+    // Envia histórico de todas conversas para o admin
+    const conversations = await Conversation.find({});
+    conversations.forEach((conv) => {
+      conv.messages.forEach((msg) => {
+        socket.emit('newMessage', {
+          from: msg.from,
+          to: msg.to,
+          body: msg.body,
+          time: msg.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          conversationId: conv.userName,
+        });
+      });
+    });
+  });
+
+  // Usuário entra
+  socket.on('joinConversation', async ({ userName }) => {
+    socket.join(userName);
+    console.log(`👤 Usuário entrou na conversa: ${userName}`);
+
+    // Busca histórico da conversa e envia
+    let conversation = await Conversation.findOne({ userName });
+    if (!conversation) {
+      conversation = new Conversation({ userName, messages: [] });
+      await conversation.save();
+    }
+    conversation.messages.forEach((msg) => {
+      socket.emit('newMessage', {
+        from: msg.from,
+        to: msg.to,
+        body: msg.body,
+        time: msg.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        conversationId: userName,
+      });
+    });
+  });
 
   // Enviar mensagem
-  socket.on('sendMessage', async ({ conversationId, from, to, body }) => {
+  socket.on('sendMessage', async (data) => {
+    const { conversationId, from, to, body } = data;
+
     try {
-      const conversation = await Conversation.findById(conversationId)
+      let conversation = await Conversation.findOne({ userName: conversationId });
 
       if (!conversation) {
-        console.error('❌ Conversa não encontrada:', conversationId)
-        return
+        conversation = new Conversation({ userName: conversationId, messages: [] });
       }
 
-      const newMessage = { from, to, body }
-      conversation.messages.push(newMessage)
-      await conversation.save()
+      const msg = { from, to, body, createdAt: new Date() };
+      conversation.messages.push(msg);
+      await conversation.save();
 
-      // Broadcast da mensagem em tempo real
-      io.to(conversationId).emit('newMessage', {
-        conversationId,
-        ...newMessage,
-        createdAt: new Date(),
-      })
+      io.to(conversationId).emit('newMessage', { ...msg, conversationId });
+      io.to('admins').emit('newMessage', { ...msg, conversationId });
     } catch (err) {
-      console.error('❌ Erro ao enviar mensagem:', err.message)
+      console.error('Erro ao salvar mensagem:', err);
     }
-  })
+  });
+
+  // Digitação
+  socket.on('typing', (conversationId) => {
+    socket.to(conversationId).emit('typing', conversationId);
+  });
 
   socket.on('disconnect', () => {
-    console.log('🔴 Cliente desconectado:', socket.id)
-  })
-})
+    console.log('🔴 Cliente desconectado');
+  });
+});
 
-// ✅ Rotas REST para conversas
-app.get('/api/conversations/:id', async (req, res) => {
+// REST para buscar conversa completa
+app.get('/api/conversations/:userName', async (req, res) => {
   try {
-    const conversation = await Conversation.findById(req.params.id)
-    if (!conversation) {
-      return res.status(404).json({ message: 'Conversa não encontrada' })
-    }
-    res.json(conversation)
+    const conversation = await Conversation.findOne({ userName: req.params.userName });
+    if (!conversation) return res.status(404).json({ message: 'Conversa não encontrada' });
+    res.json(conversation);
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao buscar conversa', error: err.message })
+    res.status(500).json({ message: 'Erro ao buscar conversa', error: err.message });
   }
-})
+});
 
-app.post('/api/conversations', async (req, res) => {
-  try {
-    const { userName } = req.body
-    const newConversation = new Conversation({ userName, messages: [] })
-    await newConversation.save()
-    res.status(201).json(newConversation)
-  } catch (err) {
-    res.status(500).json({ message: 'Erro ao criar conversa', error: err.message })
-  }
-})
-
-// ✅ Middleware de erro global
-app.use((err, req, res, next) => {
-  console.error('❌ Erro interno:', err.message)
-  res.status(500).json({ message: 'Erro interno no servidor' })
-})
-
-// ✅ Porta do servidor
-const PORT = process.env.PORT || 3333
-httpServer.listen(PORT, () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
-})
+const PORT = process.env.PORT || 3333;
+httpServer.listen(PORT, () => console.log(`🚀 Servidor rodando em http://localhost:${PORT}`));

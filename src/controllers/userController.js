@@ -151,12 +151,11 @@ export const resetPassword = async (req, res) => {
 // 📌 Listar todos os usuários
 export const getUsers = async (req, res) => {
   try {
-    const users = await User.find().select('-password') // 🔒 não retorna senha
+    const users = await User.find().select('-password') // já inclui createdAt por padrão
     res.json(users)
   } catch (error) {
     console.error('❌ Erro ao listar usuários:', error)
-    res
-      .status(500)
-      .json({ message: 'Erro ao listar usuários', error: error.message })
+    res.status(500).json({ message: 'Erro ao listar usuários', error: error.message })
   }
 }
+

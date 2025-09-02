@@ -8,6 +8,7 @@ import {
   deleteProperty,
 } from '../controllers/propertyController.js'
 import reviewRoutes from './reviewRoutes.js'
+import { getRandomImages } from "../controllers/propertyController.js";
 import { upload } from '../utils/upload.js'
 import { protect, admin } from '../middleware/authMiddleware.js'
 
@@ -16,6 +17,7 @@ const router = express.Router()
 // Rotas públicas
 router.get('/', getProperties)
 router.get('/:id', getPropertyById)
+router.get("/random-images", getRandomImages);
 
 // Rotas protegidas (apenas admin)
 router.post('/', protect, admin, createProperty)

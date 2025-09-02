@@ -12,6 +12,7 @@ const reviewSchema = new mongoose.Schema(
 )
 
 // Schema de imóvel
+// Schema de imóvel
 const propertySchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true },
@@ -41,8 +42,15 @@ const propertySchema = new mongoose.Schema(
       monthlyRent: { type: Number },
     },
     reviews: [reviewSchema],
+
+    // ➕ Localização geográfica
+    location: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
   },
   { timestamps: true },
 )
+
 
 export default mongoose.model('Property', propertySchema)
