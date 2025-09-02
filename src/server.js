@@ -114,7 +114,7 @@ app.use((err, req, res, next) => {
 })
 
 // ✅ Porta do servidor
-const PORT = process.env.PORT || 5001
+const PORT = process.env.PORT || 3333
 httpServer.listen(PORT, () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`)
 })
