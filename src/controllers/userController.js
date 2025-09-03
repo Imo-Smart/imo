@@ -104,10 +104,23 @@ export const forgotPassword = async (req, res) => {
   const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
 
   const message = `
-    <h1>Recuperação de senha</h1>
-    <p>Clique no link para resetar sua senha:</p>
-    <a href="${resetUrl}" target="_blank">${resetUrl}</a>
-  `
+  <div style="font-family: Arial, sans-serif; color: #333; line-height: 1.6;">
+    <h2 style="color: #2c3e50;">Recuperação de Senha</h2>
+    <p>Olá,</p>
+    <p>Recebemos uma solicitação para redefinir a sua senha. Para continuar, clique no link abaixo:</p>
+    <p>
+      <a href="${resetUrl}" target="_blank"
+        style="display: inline-block; padding: 10px 20px; background-color: #3498db;
+                color: #fff; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        Redefinir Senha
+      </a>
+    </p>
+    <p>Se você não fez esta solicitação, ignore este e-mail. Sua conta permanecerá segura.</p>
+    <br />
+    <p>Atenciosamente,</p>
+    <p><strong>Equipe de Suporte Imosmart</strong></p>
+  </div>
+`
 
   try {
     await sendEmail({
@@ -155,7 +168,8 @@ export const getUsers = async (req, res) => {
     res.json(users)
   } catch (error) {
     console.error('❌ Erro ao listar usuários:', error)
-    res.status(500).json({ message: 'Erro ao listar usuários', error: error.message })
+    res
+      .status(500)
+      .json({ message: 'Erro ao listar usuários', error: error.message })
   }
 }
-
