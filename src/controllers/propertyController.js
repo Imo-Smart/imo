@@ -93,17 +93,17 @@ export const getRandomImages = async (req, res) => {
     const properties = await Property.aggregate([
       { $sample: { size: 5 } }, // pega aleatoriamente
       { $project: { images: 1, name: 1 } }, // pega apenas images e nome
-    ]);
+    ])
 
     // Pega a primeira imagem de cada imóvel
     const images = properties.map((p) => ({
       title: p.name,
       img: p.images[0],
-      id: p._id
-    }));
+      id: p._id,
+    }))
 
-    res.json(images);
+    res.json(images)
   } catch (error) {
-    res.status(500).json({ message: "Erro ao buscar imagens", error });
+    res.status(500).json({ message: 'Erro ao buscar imagens', error })
   }
-};
+}

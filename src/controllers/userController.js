@@ -24,7 +24,7 @@ export const registerUser = async (req, res) => {
       try {
         await sendEmail({
           email: user.email,
-          subject: 'Bem-vindo(a) ao nosso App!',
+          subject: 'Bem-vindo(a) à plataforma Imosmart!',
           message: welcomeTemplate(user.name),
         })
       } catch (emailError) {
