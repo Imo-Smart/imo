@@ -6,8 +6,10 @@ import {
   forgotPassword,
   resetPassword,
   getUsers,
+  updateUserProfile,
 } from '../controllers/userController.js'
 import { protect, admin } from '../middleware/authMiddleware.js'
+import { upload } from '../utils/upload.js'
 
 const router = express.Router()
 
@@ -19,6 +21,9 @@ router.post('/login', loginUser)
 
 // Perfil (apenas usuário logado)
 router.get('/profile', protect, getUserProfile)
+
+// Atualiza perfil logado
+router.put('/edit-profile', protect, upload.single('avatar'), updateUserProfile)
 
 // Exemplo de rota apenas para admin
 router.get('/admin-only', protect, admin, (req, res) => {

@@ -173,3 +173,41 @@ export const getUsers = async (req, res) => {
       .json({ message: 'Erro ao listar usuários', error: error.message })
   }
 }
+
+// Atualizar perfil do usuário logado
+export const updateUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id) // req.user vem do middleware de autenticação
+    if (!user)
+      return res.status(404).json({ message: 'Usuário não encontrado' })
+
+    const { name, email, password } = req.body
+
+    if (name) user.name = name
+    if (email) user.email = email
+    if (password) user.password = password // hash automático pelo pre-save do model
+
+    // Atualiza avatar se enviado
+    if (req.file && req.file.path) {
+      user.avatar = req.file.path
+    }
+
+    await user.save()
+
+    res.json({
+      message: 'Perfil atualizado com sucesso!',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        isAdmin: user.isAdmin,
+      },
+    })
+  } catch (error) {
+    console.error(error)
+    res
+      .status(500)
+      .json({ message: 'Erro ao atualizar perfil', error: error.message })
+  }
+}
